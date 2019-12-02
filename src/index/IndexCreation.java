@@ -13,6 +13,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 public class IndexCreation {
     public static class AgeMapper
@@ -22,17 +23,19 @@ public class IndexCreation {
         ) throws IOException, InterruptedException {
             ///TODO: Emit {splitID+attribute, record} - where splitID is the split_start and record contains offset
 
-            System.out.println(key.toString());
-            System.out.println(key.toString() + "\n");
-//            InputSplit split = context.getInputSplit();
-//            System.out.println(String.format("\n\n\n%s", key.toString()));
-//            context.write(new Text(fileLocation), new Text("Good"));
+            String splitId = getSplitID(context);
+            System.out.println("++++++++++++++++++++++++++++++=" + splitId);
+
+            String[] attrs = value.toString().split(",");
+            String attribute = attrs[2];
+
+            context.write(new Text(splitId + "+" + attribute), value);
 
             //context.write(new Text(custid), new Text(data));
         }
 
-        public String getSplitID() {
-            return "";
+        public String getSplitID(Context context) {
+            return context.getInputSplit().toString();
         }
     }
 
@@ -42,7 +45,18 @@ public class IndexCreation {
 
         public void reduce(Text key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
+            // TODO: Fix offset- not sure if it will be the splitID (in key)  or added into the value
+            HashMap trojanIndex = new HashMap<String, Integer> ();
+            for (Text v: values) {
+                String[] keys = key.toString().split("[+]");
+                String offset = keys[1];
+                String[] attrs = v.toString().split(",");
+                String value = attrs[2];
+                if (!trojanIndex.containsKey(value)) {
+                    trojanIndex.put(value, offset);
+                }
 
+            }
         }
     }
 
